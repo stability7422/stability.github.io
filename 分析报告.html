@@ -1,0 +1,1461 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI 工具应用 · 游戏运营综合数据看板</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js">
+    </script>
+    <style>
+        /* ===== 全局重置 ===== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+            background: #0b0e17;
+            color: #e8edf5;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #141b2b;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #2a3a5c;
+            border-radius: 8px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #3a5078;
+        }
+
+        .app-wrapper {
+            max-width: 1440px;
+            margin: 0 auto;
+        }
+
+        /* ===== 头部 ===== */
+        .app-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 16px;
+            margin-bottom: 28px;
+            padding: 18px 28px;
+            background: rgba(20, 28, 45, 0.75);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .header-left .logo-icon {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, #6c5ce7, #0984e3);
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            box-shadow: 0 4px 16px rgba(108, 92, 231, 0.35);
+        }
+
+        .header-left h1 {
+            font-size: 22px;
+            font-weight: 600;
+            letter-spacing: -0.3px;
+            background: linear-gradient(135deg, #f0f4ff, #a5b4fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header-left .sub {
+            font-size: 13px;
+            color: #8899bb;
+            -webkit-text-fill-color: #8899bb;
+            margin-left: 6px;
+            font-weight: 400;
+        }
+
+        .header-right {
+            display: flex;
+            gap: 6px;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 4px;
+            border-radius: 14px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            flex-wrap: wrap;
+        }
+
+        .tab-btn {
+            padding: 10px 24px;
+            border: none;
+            border-radius: 11px;
+            background: transparent;
+            color: #8899bb;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            letter-spacing: 0.2px;
+            white-space: nowrap;
+        }
+
+        .tab-btn:hover {
+            color: #c8d4f0;
+            background: rgba(255, 255, 255, 0.04);
+        }
+
+        .tab-btn.active {
+            background: linear-gradient(135deg, #2a3a6a, #1a2848);
+            color: #f0f4ff;
+            box-shadow: 0 4px 16px rgba(26, 40, 72, 0.6);
+        }
+
+        .tab-btn .badge {
+            font-size: 10px;
+            background: rgba(108, 92, 231, 0.25);
+            padding: 2px 8px;
+            border-radius: 20px;
+            color: #a5b4fc;
+        }
+
+        /* ===== 面板切换 ===== */
+        .dashboard-panel {
+            display: none;
+            animation: fadeUp 0.5s ease;
+        }
+        .dashboard-panel.active {
+            display: block;
+        }
+
+        @keyframes fadeUp {
+            0% {
+                opacity: 0;
+                transform: translateY(18px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* ===== 面板标题 ===== */
+        .panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 24px;
+            padding: 0 6px;
+        }
+
+        .panel-header .title-group {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            flex-wrap: wrap;
+        }
+
+        .panel-header .title-group .emoji-badge {
+            font-size: 32px;
+            filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.4));
+        }
+
+        .panel-header .title-group h2 {
+            font-size: 24px;
+            font-weight: 600;
+            letter-spacing: -0.2px;
+        }
+
+        .panel-header .title-group .tag {
+            font-size: 12px;
+            background: rgba(108, 92, 231, 0.2);
+            padding: 4px 14px;
+            border-radius: 20px;
+            color: #a5b4fc;
+            border: 1px solid rgba(108, 92, 231, 0.15);
+        }
+
+        .panel-header .data-ref {
+            font-size: 12px;
+            color: #667799;
+            background: rgba(0, 0, 0, 0.25);
+            padding: 6px 16px;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.04);
+        }
+
+        /* ===== 指标卡片 ===== */
+        .metrics-row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .metric-card {
+            background: rgba(20, 28, 45, 0.7);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border-radius: 18px;
+            padding: 20px 22px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .metric-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+        }
+
+        .metric-card .label {
+            font-size: 13px;
+            color: #8899bb;
+            font-weight: 500;
+            letter-spacing: 0.3px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .metric-card .value {
+            font-size: 32px;
+            font-weight: 700;
+            margin-top: 6px;
+            letter-spacing: -0.5px;
+            background: linear-gradient(135deg, #f0f4ff, #c8d4f0);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .metric-card .value .unit {
+            font-size: 16px;
+            font-weight: 400;
+            color: #8899bb;
+            -webkit-text-fill-color: #8899bb;
+            margin-left: 4px;
+        }
+
+        .metric-card .sub-info {
+            font-size: 13px;
+            color: #667799;
+            margin-top: 4px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .metric-card .sub-info .trend-up {
+            color: #4ade80;
+        }
+        .metric-card .sub-info .trend-down {
+            color: #f87171;
+        }
+
+        .metric-card.accent-1 .value {
+            background: linear-gradient(135deg, #fbbf24, #f59e0b);
+            -webkit-background-clip: text;
+            background-clip: text;
+        }
+        .metric-card.accent-2 .value {
+            background: linear-gradient(135deg, #60a5fa, #3b82f6);
+            -webkit-background-clip: text;
+            background-clip: text;
+        }
+        .metric-card.accent-3 .value {
+            background: linear-gradient(135deg, #a78bfa, #8b5cf6);
+            -webkit-background-clip: text;
+            background-clip: text;
+        }
+        .metric-card.accent-4 .value {
+            background: linear-gradient(135deg, #34d399, #10b981);
+            -webkit-background-clip: text;
+            background-clip: text;
+        }
+        .metric-card.accent-5 .value {
+            background: linear-gradient(135deg, #fb923c, #f97316);
+            -webkit-background-clip: text;
+            background-clip: text;
+        }
+        .metric-card.accent-6 .value {
+            background: linear-gradient(135deg, #f472b6, #ec4899);
+            -webkit-background-clip: text;
+            background-clip: text;
+        }
+
+        /* ===== 图表行 ===== */
+        .charts-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 18px;
+            margin-bottom: 18px;
+        }
+
+        .charts-row.single {
+            grid-template-columns: 1fr;
+        }
+
+        .chart-card {
+            background: rgba(16, 22, 38, 0.7);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border-radius: 18px;
+            padding: 22px 22px 18px;
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+            transition: box-shadow 0.2s ease;
+        }
+
+        .chart-card:hover {
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .chart-card .chart-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: #c8d4f0;
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .chart-card .chart-title .dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #6c5ce7;
+        }
+        .chart-card .chart-title .dot.gold {
+            background: #fbbf24;
+        }
+        .chart-card .chart-title .dot.green {
+            background: #34d399;
+        }
+        .chart-card .chart-title .dot.pink {
+            background: #f472b6;
+        }
+        .chart-card .chart-title .dot.blue {
+            background: #60a5fa;
+        }
+        .chart-card .chart-title .dot.orange {
+            background: #fb923c;
+        }
+        .chart-card .chart-title .dot.purple {
+            background: #a78bfa;
+        }
+
+        .chart-wrapper {
+            position: relative;
+            height: 220px;
+        }
+        .chart-wrapper.tall {
+            height: 250px;
+        }
+
+        /* ===== 模拟截图卡片 ===== */
+        .screenshot-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 18px;
+            margin: 18px 0;
+        }
+
+        .screenshot-card {
+            background: #141b2b;
+            border-radius: 18px;
+            padding: 14px 14px 12px;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            transition: transform 0.2s ease;
+        }
+
+        .screenshot-card:hover {
+            transform: translateY(-3px);
+        }
+
+        .screenshot-card .screenshot-content {
+            background: #0f1628;
+            border-radius: 12px;
+            padding: 20px 16px;
+            min-height: 140px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            position: relative;
+        }
+
+        .screenshot-card .screenshot-content .badge {
+            position: absolute;
+            top: 10px;
+            right: 12px;
+            font-size: 10px;
+            background: rgba(108, 92, 231, 0.3);
+            padding: 2px 12px;
+            border-radius: 20px;
+            color: #a5b4fc;
+            border: 1px solid rgba(108, 92, 231, 0.15);
+        }
+
+        .screenshot-card .screenshot-content .main-text {
+            font-size: 22px;
+            font-weight: 700;
+            letter-spacing: 2px;
+            text-align: center;
+            line-height: 1.3;
+        }
+
+        .screenshot-card .screenshot-content .sub-text {
+            font-size: 13px;
+            color: #8899bb;
+            text-align: center;
+            margin-top: 4px;
+        }
+
+        .screenshot-card .screenshot-content .highlight-text {
+            color: #fbbf24;
+        }
+
+        .screenshot-card .screenshot-content .comment-block {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 10px 14px;
+            border-radius: 10px;
+            max-width: 95%;
+            border-left: 3px solid #fbbf24;
+            font-size: 13px;
+            line-height: 1.6;
+            color: #d0d8ec;
+            text-align: left;
+        }
+
+        .screenshot-card .screenshot-content .comment-block .author {
+            display: block;
+            font-size: 11px;
+            color: #667799;
+            margin-top: 4px;
+        }
+
+        .screenshot-card .screenshot-content .meta-row {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-top: 6px;
+        }
+
+        .screenshot-card .screenshot-content .meta-row .tag {
+            background: rgba(255, 255, 255, 0.04);
+            padding: 2px 12px;
+            border-radius: 12px;
+            font-size: 11px;
+            color: #8899bb;
+        }
+
+        .screenshot-card .screenshot-content .skin-row {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-top: 4px;
+        }
+
+        .screenshot-card .screenshot-content .skin-row .item {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 4px 14px;
+            border-radius: 16px;
+            font-size: 12px;
+            color: #a5b4fc;
+            border: 1px solid rgba(255, 255, 255, 0.04);
+        }
+
+        .screenshot-card .caption {
+            font-size: 12px;
+            color: #667799;
+            text-align: center;
+            margin-top: 8px;
+            letter-spacing: 0.3px;
+        }
+
+        /* ===== 数据表格 ===== */
+        .table-card {
+            background: rgba(16, 22, 38, 0.7);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border-radius: 18px;
+            padding: 22px 24px 20px;
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+            margin-top: 18px;
+            overflow-x: auto;
+        }
+
+        .table-card .table-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: #c8d4f0;
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .table-card table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+
+        .table-card th {
+            text-align: left;
+            padding: 12px 14px;
+            color: #8899bb;
+            font-weight: 500;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .table-card td {
+            padding: 11px 14px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            color: #d0d8ec;
+        }
+
+        .table-card tr:hover td {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .table-card .highlight {
+            color: #fbbf24;
+            font-weight: 500;
+        }
+        .table-card .highlight-green {
+            color: #4ade80;
+            font-weight: 500;
+        }
+        .table-card .highlight-red {
+            color: #f87171;
+            font-weight: 500;
+        }
+        .table-card .highlight-blue {
+            color: #60a5fa;
+            font-weight: 500;
+        }
+
+        .table-card .tag-sm {
+            display: inline-block;
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 500;
+        }
+        .tag-sm.gold {
+            background: rgba(251, 191, 36, 0.15);
+            color: #fbbf24;
+        }
+        .tag-sm.green {
+            background: rgba(74, 222, 128, 0.15);
+            color: #4ade80;
+        }
+        .tag-sm.red {
+            background: rgba(248, 113, 113, 0.15);
+            color: #f87171;
+        }
+        .tag-sm.blue {
+            background: rgba(96, 165, 250, 0.15);
+            color: #60a5fa;
+        }
+
+        /* ===== 底部 ===== */
+        .app-footer {
+            margin-top: 32px;
+            padding: 16px 24px;
+            text-align: center;
+            font-size: 13px;
+            color: #445577;
+            border-top: 1px solid rgba(255, 255, 255, 0.04);
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .app-footer .source {
+            color: #556688;
+        }
+        .app-footer .source strong {
+            color: #7788aa;
+            font-weight: 500;
+        }
+
+        /* ===== 响应式 ===== */
+        @media (max-width: 1024px) {
+            .metrics-row {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .charts-row {
+                grid-template-columns: 1fr;
+            }
+            .screenshot-row {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 640px) {
+            body {
+                padding: 12px;
+            }
+            .app-header {
+                padding: 14px 18px;
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .header-left h1 {
+                font-size: 18px;
+            }
+            .header-right {
+                justify-content: center;
+            }
+            .tab-btn {
+                padding: 8px 14px;
+                font-size: 13px;
+            }
+            .metrics-row {
+                grid-template-columns: 1fr 1fr;
+                gap: 10px;
+            }
+            .metric-card {
+                padding: 14px 16px;
+            }
+            .metric-card .value {
+                font-size: 24px;
+            }
+            .panel-header .title-group h2 {
+                font-size: 18px;
+            }
+            .chart-wrapper {
+                height: 180px;
+            }
+            .chart-wrapper.tall {
+                height: 200px;
+            }
+            .table-card {
+                padding: 14px 12px;
+            }
+            .table-card td,
+            .table-card th {
+                padding: 8px 10px;
+                font-size: 12px;
+            }
+            .screenshot-card .screenshot-content .main-text {
+                font-size: 18px;
+            }
+        }
+
+        @media (max-width: 420px) {
+            .metrics-row {
+                grid-template-columns: 1fr 1fr;
+                gap: 8px;
+            }
+            .metric-card .value {
+                font-size: 20px;
+            }
+            .metric-card .label {
+                font-size: 11px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="app-wrapper">
+
+        <!-- ========== 头部 ========== -->
+        <header class="app-header">
+            <div class="header-left">
+                <div class="logo-icon">🎮</div>
+                <div>
+                    <h1>AI 工具赋能 · 游戏运营数据看板 <span class="sub">DeepSeek · 豆包</span></h1>
+                </div>
+            </div>
+            <div class="header-right" role="tablist">
+                <button class="tab-btn active" data-tab="panel1" role="tab">
+                    🌾 星露谷物语 <span class="badge">1.5 vs 1.6</span>
+                </button>
+                <button class="tab-btn" data-tab="panel2" role="tab">
+                    🔥 饥荒联机版 <span class="badge">冬日盛宴</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- ============================================================ -->
+        <!-- ========== 看板一：星露谷物语 ========== -->
+        <!-- ============================================================ -->
+        <section class="dashboard-panel active" id="panel1" role="tabpanel">
+
+            <div class="panel-header">
+                <div class="title-group">
+                    <span class="emoji-badge">🌾</span>
+                    <h2>玩家反馈 AI 分析报告 · 1.5 vs 1.6 版本</h2>
+                    <span class="tag">📊 DeepSeek V3 分析</span>
+                </div>
+                <span class="data-ref">📅 数据截至 2026.06 · Steam + TapTap</span>
+            </div>
+
+            <!-- 指标卡 -->
+            <div class="metrics-row">
+                <div class="metric-card accent-1">
+                    <div class="label">⭐ 好评率</div>
+                    <div class="value">98%</div>
+                    <div class="sub-info">1.6 版本发布后保持</div>
+                </div>
+                <div class="metric-card accent-2">
+                    <div class="label">📈 在线峰值</div>
+                    <div class="value">22.7 <span class="unit">万</span></div>
+                    <div class="sub-info"><span class="trend-up">▲ 152%</span> vs 1.5 (9 万)</div>
+                </div>
+                <div class="metric-card accent-3">
+                    <div class="label">🤖 AI 分析效率</div>
+                    <div class="value">1.5 <span class="unit">h</span></div>
+                    <div class="sub-info">纯人工需 4h · 提升 <span class="trend-up">62.5%</span></div>
+                </div>
+                <div class="metric-card accent-4">
+                    <div class="label">🎯 AI 分类准确率</div>
+                    <div class="value">92%</div>
+                    <div class="sub-info">人工抽样验证通过</div>
+                </div>
+            </div>
+
+            <!-- 两张截图：1.6 Update 标题 + 玩家评论 -->
+            <div class="screenshot-row">
+                <div class="screenshot-card">
+                    <div class="screenshot-content">
+                        <span class="badge">📸 截图 1</span>
+                        <div class="main-text" style="color:#f0f4ff; letter-spacing:3px;">STARDEW<br />VALLEY</div>
+                        <div class="main-text" style="font-size:26px; color:#fbbf24; margin-top:-4px;">1.6 Update</div>
+                        <div class="sub-text" style="margin-top:6px; font-size:11px; color:#667799;">2024.03.20 · 最大规模内容更新</div>
+                    </div>
+                    <div class="caption">《星露谷物语》1.6 版本正式发布，新增 500+ 项内容</div>
+                </div>
+                <div class="screenshot-card">
+                    <div class="screenshot-content">
+                        <span class="badge">💬 截图 2</span>
+                        <div style="font-size:11px; color:#667799; width:100%; text-align:left; margin-bottom:6px;">2024年3月20日上午3:42</div>
+                        <div class="comment-block">
+                            "Thank you so much, just so much for all these years creating amazing content for the game... ConcernedApe, thank you more for all the work, for all the efforts for us, the fans, the players who sincerely love the wonderful Stardew Valley."
+                            <span class="author">— Steam 玩家 · #251</span>
+                        </div>
+                        <div class="meta-row">
+                            <span class="tag">🎉🎉🎉</span>
+                            <span class="tag">WhoDis → 🎉🎉🎉</span>
+                        </div>
+                        <div style="font-size:11px; color:#667799; width:100%; text-align:left; margin-top:4px;">#252 Sick Of It All: "OMG man, thx for updating this masterpiece!"</div>
+                    </div>
+                    <div class="caption">Steam 社区玩家热烈庆祝 1.6 版本发布</div>
+                </div>
+            </div>
+
+            <!-- 图表行 -->
+            <div class="charts-row">
+                <div class="chart-card">
+                    <div class="chart-title"><span class="dot gold"></span> 反馈维度占比对比 (1.5 vs 1.6)</div>
+                    <div class="chart-wrapper"><canvas id="chart1_dimension"></canvas></div>
+                </div>
+                <div class="chart-card">
+                    <div class="chart-title"><span class="dot pink"></span> 1.6 版本 TOP3 正负面反馈</div>
+                    <div class="chart-wrapper"><canvas id="chart1_top3"></canvas></div>
+                </div>
+            </div>
+
+            <!-- 数据表格 1 -->
+            <div class="table-card">
+                <div class="table-title">📋 表 1：两个版本玩家反馈维度占比对比</div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>反馈维度</th>
+                            <th>1.5 版本占比</th>
+                            <th>1.6 版本占比</th>
+                            <th>变化趋势</th>
+                            <th>核心评价示例</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>内容容量</strong></td>
+                            <td><span class="highlight">42%</span></td>
+                            <td><span class="highlight-blue">28%</span></td>
+                            <td><span class="highlight-red">↓ 14%</span></td>
+                            <td>"姜岛内容太丰富了，玩了 100 小时还没玩完"</td>
+                        </tr>
+                        <tr>
+                            <td><strong>玩法优化</strong></td>
+                            <td><span class="highlight">25%</span></td>
+                            <td><span class="highlight-blue">35%</span></td>
+                            <td><span class="highlight-green">↑ 10%</span></td>
+                            <td>"农场自动化终于来了，不用再手动收菜了"</td>
+                        </tr>
+                        <tr>
+                            <td><strong>BUG 体验</strong></td>
+                            <td><span class="highlight">18%</span></td>
+                            <td><span class="highlight-blue">22%</span></td>
+                            <td><span class="highlight-red">↑ 4%</span></td>
+                            <td>"MOD 全崩了，更新后很多模组不能用"</td>
+                        </tr>
+                        <tr>
+                            <td><strong>美术音乐</strong></td>
+                            <td><span class="highlight">10%</span></td>
+                            <td><span class="highlight-blue">10%</span></td>
+                            <td>—</td>
+                            <td>"新的节日音乐很好听，很有氛围感"</td>
+                        </tr>
+                        <tr>
+                            <td><strong>社交系统</strong></td>
+                            <td><span class="highlight">5%</span></td>
+                            <td><span class="highlight-blue">5%</span></td>
+                            <td>—</td>
+                            <td>"希望能增加更多多人互动玩法"</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- 数据表格 2 -->
+            <div class="table-card">
+                <div class="table-title">📋 表 2：1.6 版本核心正面与负面反馈 TOP3</div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>排名</th>
+                            <th>正面反馈</th>
+                            <th>负面反馈</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><span class="tag-sm gold">#1</span></td>
+                            <td><span class="highlight-green">农场自动化系统</span></td>
+                            <td><span class="highlight-red">MOD 兼容性问题</span></td>
+                        </tr>
+                        <tr>
+                            <td><span class="tag-sm gold">#2</span></td>
+                            <td><span class="highlight-green">新作物与新家具</span></td>
+                            <td><span class="highlight-red">汉化字体问题</span></td>
+                        </tr>
+                        <tr>
+                            <td><span class="tag-sm gold">#3</span></td>
+                            <td><span class="highlight-green">新节日与 NPC 互动</span></td>
+                            <td><span class="highlight-red">部分 BUG 未及时修复</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- 深度分析结论 -->
+            <div class="table-card" style="margin-top:18px;">
+                <div class="table-title">🧠 深度分析结论</div>
+                <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; padding:4px 0;">
+                    <div style="background:rgba(251,191,36,0.06); border-radius:12px; padding:16px; border-left:3px solid #fbbf24;">
+                        <div style="font-size:13px; color:#fbbf24; font-weight:600; margin-bottom:6px;">🎯 诉求转变</div>
+                        <div style="font-size:13px; color:#c8d4f0; line-height:1.6;">1.5 版本关注"内容多少" → 1.6 版本关注"玩法质量"与"体验优化"。单纯堆砌内容已无法满足核心玩家。</div>
+                    </div>
+                    <div style="background:rgba(248,113,113,0.06); border-radius:12px; padding:16px; border-left:3px solid #f87171;">
+                        <div style="font-size:13px; color:#f87171; font-weight:600; margin-bottom:6px;">⚠️ BUG 与兼容性</div>
+                        <div style="font-size:13px; color:#c8d4f0; line-height:1.6;">上线初期 BUG 是差评首要原因。MOD 兼容性测试必须作为版本测试的重中之重。</div>
+                    </div>
+                    <div style="background:rgba(96,165,250,0.06); border-radius:12px; padding:16px; border-left:3px solid #60a5fa;">
+                        <div style="font-size:13px; color:#60a5fa; font-weight:600; margin-bottom:6px;">🌍 本地化质量</div>
+                        <div style="font-size:13px; color:#c8d4f0; line-height:1.6;">1.6.4 汉化字体问题致好评率从 98% 降至 96%，细节本地化直接影响口碑。</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 运营启示 -->
+            <div class="table-card" style="margin-top:18px;">
+                <div class="table-title">💡 对心动游戏的运营启示</div>
+                <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; padding:4px 0;">
+                    <div style="background:rgba(74,222,128,0.05); border-radius:12px; padding:16px; border:1px solid rgba(74,222,128,0.10);">
+                        <div style="font-size:13px; color:#4ade80; font-weight:600; margin-bottom:6px;">📦 版本更新策略</div>
+                        <div style="font-size:13px; color:#c8d4f0; line-height:1.6;">"核心新内容 + 老玩法优化"组合模式，优化体力系统、自动化程度等痛点。</div>
+                    </div>
+                    <div style="background:rgba(251,191,36,0.05); border-radius:12px; padding:16px; border:1px solid rgba(251,191,36,0.10);">
+                        <div style="font-size:13px; color:#fbbf24; font-weight:600; margin-bottom:6px;">🛠️ BUG 管理</div>
+                        <div style="font-size:13px; color:#c8d4f0; line-height:1.6;">"上线前多轮测试 + 上线后 24 小时快速响应"机制，优先修复核心体验 BUG。</div>
+                    </div>
+                    <div style="background:rgba(167,139,250,0.05); border-radius:12px; padding:16px; border:1px solid rgba(167,139,250,0.10);">
+                        <div style="font-size:13px; color:#a78bfa; font-weight:600; margin-bottom:6px;">📊 玩家反馈机制</div>
+                        <div style="font-size:13px; color:#c8d4f0; line-height:1.6;">利用 AI 工具建立常态化反馈分析体系，每周生成报告，及时掌握诉求变化。</div>
+                    </div>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- ============================================================ -->
+        <!-- ========== 看板二：饥荒联机版 ========== -->
+        <!-- ============================================================ -->
+        <section class="dashboard-panel" id="panel2" role="tabpanel">
+
+            <div class="panel-header">
+                <div class="title-group">
+                    <span class="emoji-badge">🔥</span>
+                    <h2>冬日盛宴 · 节日主题运营活动方案</h2>
+                    <span class="tag">📋 豆包 4.0 辅助策划</span>
+                </div>
+                <span class="data-ref">📅 活动时间 2026.12.15 – 2027.01.05</span>
+            </div>
+
+            <!-- 指标卡 -->
+            <div class="metrics-row">
+                <div class="metric-card accent-1">
+                    <div class="label">📈 目标日活提升</div>
+                    <div class="value">40%</div>
+                    <div class="sub-info">历史活动提升 30%-50%</div>
+                </div>
+                <div class="metric-card accent-5">
+                    <div class="label">📊 7 日留存目标</div>
+                    <div class="value">50%</div>
+                    <div class="sub-info">当前留存 35% · 提升 15%</div>
+                </div>
+                <div class="metric-card accent-6">
+                    <div class="label">💰 流水提升目标</div>
+                    <div class="value">30%</div>
+                    <div class="sub-info">付费率从 5% → 8%</div>
+                </div>
+                <div class="metric-card accent-4">
+                    <div class="label">⚡ AI 策划效率</div>
+                    <div class="value">2 <span class="unit">h</span></div>
+                    <div class="sub-info">纯人工需 5h · 提升 <span class="trend-up">60%</span></div>
+                </div>
+            </div>
+
+            <!-- 两张截图：冬日盛宴宣传 + 节日盛装 -->
+            <div class="screenshot-row">
+                <div class="screenshot-card">
+                    <div class="screenshot-content">
+                        <span class="badge">📸 截图 3</span>
+                        <div class="main-text" style="font-size:20px; color:#60a5fa;">冬 季 盛 宴</div>
+                        <div class="main-text" style="font-size:16px; color:#f0f4ff; letter-spacing:1px;">饥荒·联机版</div>
+                        <div class="sub-text" style="font-size:13px; color:#8899bb; margin-top:2px;">钩，线 &amp; 喷墨 · 归来</div>
+                        <div class="sub-text" style="font-size:11px; color:#667799;">归神</div>
+                    </div>
+                    <div class="caption">《饥荒联机版》年度最重要节日活动"冬日盛宴"</div>
+                </div>
+                <div class="screenshot-card">
+                    <div class="screenshot-content">
+                        <span class="badge">🎁 截图 4</span>
+                        <div style="font-size:18px; font-weight:600; color:#fbbf24; margin-bottom:4px;">节日盛装</div>
+                        <div class="sub-text" style="font-size:12px; color:#8899bb; margin-bottom:6px;">冬季盛宴期间免费获取皮肤套装</div>
+                        <div class="skin-row">
+                            <span class="item">🧥 圣诞节大衣</span>
+                            <span class="item">👗 圣诞连衣裙</span>
+                            <span class="item">🔔 叮铃响的大礼帽</span>
+                            <span class="item">📦 姜饼箱子</span>
+                            <span class="item">🍮 李子布丁帽</span>
+                        </div>
+                        <div class="sub-text" style="font-size:11px; color:#667799; margin-top:6px;">包含五件节日主题皮肤</div>
+                    </div>
+                    <div class="caption">活动期间玩家可免费获取节日皮肤套装</div>
+                </div>
+            </div>
+
+            <!-- 图表行 -->
+            <div class="charts-row">
+                <div class="chart-card">
+                    <div class="chart-title"><span class="dot blue"></span> 历年冬日盛宴活动时长</div>
+                    <div class="chart-wrapper"><canvas id="chart2_duration"></canvas></div>
+                </div>
+                <div class="chart-card">
+                    <div class="chart-title"><span class="dot orange"></span> 核心玩法模块占比</div>
+                    <div class="chart-wrapper"><canvas id="chart2_module"></canvas></div>
+                </div>
+            </div>
+
+            <!-- 数据表格 1：历年活动时间 -->
+            <div class="table-card">
+                <div class="table-title">📋 表 3：历年冬日盛宴活动时间参考</div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>年份</th>
+                            <th>开始日期</th>
+                            <th>结束日期</th>
+                            <th>活动时长</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>2023</strong></td>
+                            <td>2022.12.08</td>
+                            <td>2023.01.19</td>
+                            <td><span class="highlight">42 天</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>2024</strong></td>
+                            <td>2023.12.14</td>
+                            <td>2024.01.18</td>
+                            <td><span class="highlight">35 天</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>2025</strong></td>
+                            <td>2024.12.12</td>
+                            <td>2025.01.15</td>
+                            <td><span class="highlight">34 天</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>2026 (本次)</strong></td>
+                            <td><span class="highlight-green">2026.12.15</span></td>
+                            <td><span class="highlight-green">2027.01.05</span></td>
+                            <td><span class="highlight-green">21 天</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- 核心玩法设计 -->
+            <div class="table-card" style="margin-top:18px;">
+                <div class="table-title">🎮 核心玩法设计（分层适配不同玩家）</div>
+                <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; padding:4px 0;">
+                    <div style="background:rgba(96,165,250,0.06); border-radius:12px; padding:16px; border:1px solid rgba(96,165,250,0.10);">
+                        <div style="font-size:13px; color:#60a5fa; font-weight:600; margin-bottom:6px;">🧑‍🌾 暖冬收集任务</div>
+                        <div style="font-size:12px; color:#8899bb; margin-bottom:4px;">👤 单人玩家 · 每日任务</div>
+                        <div style="font-size:13px; color:#c8d4f0; line-height:1.6;">收集"冬日浆果"、"冰雪结晶"等活动道具 → 奖励基础装饰、食物配方、代币</div>
+                        <div style="font-size:12px; color:#667799; margin-top:4px;">🎯 目的：保证休闲玩家日常登录动力</div>
+                    </div>
+                    <div style="background:rgba(251,191,36,0.06); border-radius:12px; padding:16px; border:1px solid rgba(251,191,36,0.10);">
+                        <div style="font-size:13px; color:#fbbf24; font-weight:600; margin-bottom:6px;">🍽️ 冬日盛宴筹备</div>
+                        <div style="font-size:12px; color:#8899bb; margin-bottom:4px;">👥 2-3 人小队 · 周常任务</div>
+                        <div style="font-size:13px; color:#c8d4f0; line-height:1.6;">合作完成"收集食材"、"搭建宴会场地" → 限定建筑"冬日宴会桌"、大量代币</div>
+                        <div style="font-size:12px; color:#667799; margin-top:4px;">🎯 目的：促进玩家组队互动，提升社交粘性</div>
+                    </div>
+                    <div style="background:rgba(248,113,113,0.06); border-radius:12px; padding:16px; border:1px solid rgba(248,113,113,0.10);">
+                        <div style="font-size:13px; color:#f87171; font-weight:600; margin-bottom:6px;">⚔️ 击败冰雪巨鹿</div>
+                        <div style="font-size:12px; color:#8899bb; margin-bottom:4px;">👥 6 人以上大团队 · 挑战任务</div>
+                        <div style="font-size:13px; color:#c8d4f0; line-height:1.6;">击败活动专属 BOSS"冰雪巨鹿" → 限定皮肤、稀有装备、特殊成就</div>
+                        <div style="font-size:12px; color:#667799; margin-top:4px;">🎯 目的：满足硬核玩家的挑战需求</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 奖励梯度 + 付费设计 -->
+            <div class="table-card" style="margin-top:18px;">
+                <div class="table-title">🎁 奖励梯度设计 &amp; 付费方案</div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+                    <div>
+                        <div style="font-size:13px; color:#c8d4f0; font-weight:500; margin-bottom:8px;">📈 奖励梯度路径</div>
+                        <div style="background:rgba(16,22,38,0.4); border-radius:10px; padding:12px 16px; border:1px solid rgba(255,255,255,0.04);">
+                            <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; font-size:12px; color:#8899bb;">
+                                <span style="background:#1a2440; padding:4px 10px; border-radius:8px;">登录奖励 (7天)</span>
+                                <span style="color:#445577;">→</span>
+                                <span style="background:#1a2440; padding:4px 10px; border-radius:8px;">日常任务</span>
+                                <span style="color:#445577;">→</span>
+                                <span style="background:#1a2440; padding:4px 10px; border-radius:8px;">周常任务</span>
+                                <span style="color:#445577;">→</span>
+                                <span style="background:#1a2440; padding:4px 10px; border-radius:8px;">挑战任务</span>
+                            </div>
+                            <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-top:6px; font-size:11px; color:#667799;">
+                                <span>🎀 限定帽子</span>
+                                <span style="color:#445577;">→</span>
+                                <span>🏠 基础装饰</span>
+                                <span style="color:#445577;">→</span>
+                                <span>🏗️ 限定建筑图纸</span>
+                                <span style="color:#445577;">→</span>
+                                <span>⚔️ 限定 BOSS 皮肤</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <div style="font-size:13px; color:#c8d4f0; font-weight:500; margin-bottom:8px;">💰 付费设计</div>
+                        <div style="background:rgba(16,22,38,0.4); border-radius:10px; padding:12px 16px; border:1px solid rgba(255,255,255,0.04);">
+                            <div style="font-size:13px; color:#c8d4f0; line-height:1.8;">
+                                <div>🛍️ <strong style="color:#fbbf24;">冬日盛宴超值礼包</strong> (27 元) · 限定皮肤</div>
+                                <div>🔄 <strong style="color:#60a5fa;">往期限定返场</strong> · 限时 5 折</div>
+                                <div>🎁 <strong style="color:#f472b6;">冬日盲盒</strong> (6 元 / 个) · 随机装饰与稀有道具</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 风险预案 -->
+            <div class="table-card" style="margin-top:18px;">
+                <div class="table-title">🛡️ 表 4：主要风险与应对措施</div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>风险类型</th>
+                            <th>可能发生的问题</th>
+                            <th>应对措施</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><span class="tag-sm red">服务器</span></td>
+                            <td>活动上线初期服务器崩溃</td>
+                            <td>上线前 3 轮压力测试，准备临时扩容方案</td>
+                        </tr>
+                        <tr>
+                            <td><span class="tag-sm red">BUG</span></td>
+                            <td>活动玩法出现严重 BUG</td>
+                            <td>设立 24 小时 BUG 应急处理小组，准备全服补偿方案</td>
+                        </tr>
+                        <tr>
+                            <td><span class="tag-sm gold">平衡性</span></td>
+                            <td>活动奖励过于丰厚 / 贫瘠</td>
+                            <td>实时监控玩家数据，根据实际情况调整奖励数值</td>
+                        </tr>
+                        <tr>
+                            <td><span class="tag-sm blue">舆情</span></td>
+                            <td>玩家对活动内容不满意</td>
+                            <td>安排专人监控社区舆情，及时回应玩家诉求</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- 效果预估 -->
+            <div class="table-card" style="margin-top:18px;">
+                <div class="table-title">📊 效果预估</div>
+                <div style="display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:12px; padding:4px 0;">
+                    <div style="background:rgba(74,222,128,0.05); border-radius:12px; padding:14px; text-align:center; border:1px solid rgba(74,222,128,0.08);">
+                        <div style="font-size:11px; color:#8899bb;">日活提升</div>
+                        <div style="font-size:24px; font-weight:700; color:#4ade80;">40% – 50%</div>
+                    </div>
+                    <div style="background:rgba(96,165,250,0.05); border-radius:12px; padding:14px; text-align:center; border:1px solid rgba(96,165,250,0.08);">
+                        <div style="font-size:11px; color:#8899bb;">7 日留存</div>
+                        <div style="font-size:24px; font-weight:700; color:#60a5fa;">35% → 50%</div>
+                    </div>
+                    <div style="background:rgba(251,191,36,0.05); border-radius:12px; padding:14px; text-align:center; border:1px solid rgba(251,191,36,0.08);">
+                        <div style="font-size:11px; color:#8899bb;">付费率</div>
+                        <div style="font-size:24px; font-weight:700; color:#fbbf24;">5% → 8%</div>
+                    </div>
+                    <div style="background:rgba(244,114,182,0.05); border-radius:12px; padding:14px; text-align:center; border:1px solid rgba(244,114,182,0.08);">
+                        <div style="font-size:11px; color:#8899bb;">流水提升</div>
+                        <div style="font-size:24px; font-weight:700; color:#f472b6;">30% – 40%</div>
+                    </div>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- ========== 底部 ========== -->
+        <footer class="app-footer">
+            <span>🎯 数据看板 · AI 工具应用实战报告</span>
+            <span class="source">
+                <strong>数据来源：</strong> Steam250 · SteamDB · TapTap · 游戏维基百科 · 公开运营数据
+            </span>
+            <span>📅 生成日期 2026.06</span>
+        </footer>
+
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- ========== JavaScript ========== -->
+    <!-- ============================================================ -->
+    <script>
+        (function() {
+            'use strict';
+
+            // ===== 1. 标签切换 =====
+            const tabs = document.querySelectorAll('.tab-btn');
+            const panels = {
+                panel1: document.getElementById('panel1'),
+                panel2: document.getElementById('panel2'),
+            };
+
+            tabs.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const target = this.dataset.tab;
+                    tabs.forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    Object.keys(panels).forEach(key => {
+                        panels[key].classList.toggle('active', key === target);
+                    });
+                    setTimeout(() => {
+                        if (target === 'panel1') {
+                            if (window.chart1_dim) window.chart1_dim.resize();
+                            if (window.chart1_top) window.chart1_top.resize();
+                        } else {
+                            if (window.chart2_dur) window.chart2_dur.resize();
+                            if (window.chart2_mod) window.chart2_mod.resize();
+                        }
+                    }, 120);
+                });
+            });
+
+            // ===== 2. Chart.js 全局默认 =====
+            const chartDefaults = {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        labels: {
+                            color: '#c8d4f0',
+                            font: { size: 12, weight: '400' },
+                            boxWidth: 14,
+                            padding: 16,
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        ticks: { color: '#8899bb', font: { size: 11 } },
+                        grid: { color: 'rgba(255,255,255,0.04)' },
+                    },
+                    y: {
+                        ticks: { color: '#8899bb', font: { size: 11 } },
+                        grid: { color: 'rgba(255,255,255,0.04)' },
+                    }
+                }
+            };
+
+            // ===== 3. 看板一：星露谷物语 =====
+
+            // 3.1 反馈维度占比对比
+            const ctx1 = document.getElementById('chart1_dimension').getContext('2d');
+            window.chart1_dim = new Chart(ctx1, {
+                type: 'bar',
+                data: {
+                    labels: ['内容容量', '玩法优化', 'BUG 体验', '美术音乐', '社交系统'],
+                    datasets: [{
+                        label: '1.5 版本',
+                        data: [42, 25, 18, 10, 5],
+                        backgroundColor: 'rgba(107, 114, 128, 0.6)',
+                        borderColor: '#6b7280',
+                        borderWidth: 1.5,
+                        borderRadius: 4,
+                    }, {
+                        label: '1.6 版本',
+                        data: [28, 35, 22, 10, 5],
+                        backgroundColor: 'rgba(251, 191, 36, 0.75)',
+                        borderColor: '#fbbf24',
+                        borderWidth: 1.5,
+                        borderRadius: 4,
+                    }]
+                },
+                options: {
+                    ...chartDefaults,
+                    plugins: {
+                        ...chartDefaults.plugins,
+                        legend: {
+                            labels: { color: '#c8d4f0', font: { size: 12 } }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(ctx) {
+                                    return ctx.dataset.label + ': ' + ctx.parsed.y + '%';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        ...chartDefaults.scales,
+                        y: {
+                            ...chartDefaults.scales.y,
+                            max: 50,
+                            ticks: { stepSize: 10, color: '#8899bb' },
+                        }
+                    }
+                }
+            });
+
+            // 3.2 TOP3 正负面反馈
+            const ctx2 = document.getElementById('chart1_top3').getContext('2d');
+            window.chart1_top = new Chart(ctx2, {
+                type: 'bar',
+                data: {
+                    labels: ['#1', '#2', '#3'],
+                    datasets: [{
+                        label: '正面反馈',
+                        data: [45, 35, 25],
+                        backgroundColor: 'rgba(74, 222, 128, 0.7)',
+                        borderColor: '#4ade80',
+                        borderWidth: 1.5,
+                        borderRadius: 4,
+                    }, {
+                        label: '负面反馈',
+                        data: [40, 30, 20],
+                        backgroundColor: 'rgba(248, 113, 113, 0.7)',
+                        borderColor: '#f87171',
+                        borderWidth: 1.5,
+                        borderRadius: 4,
+                    }]
+                },
+                options: {
+                    ...chartDefaults,
+                    indexAxis: 'y',
+                    plugins: {
+                        ...chartDefaults.plugins,
+                        legend: {
+                            labels: { color: '#c8d4f0', font: { size: 12 } }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(ctx) {
+                                    const labels = ['农场自动化系统', '新作物与新家具', '新节日与 NPC 互动'];
+                                    const negLabels = ['MOD 兼容性问题', '汉化字体问题', '部分 BUG 未及时修复'];
+                                    if (ctx.datasetIndex === 0) {
+                                        return '正面: ' + labels[ctx.dataIndex] + ' (' + ctx.parsed.x + '%)';
+                                    } else {
+                                        return '负面: ' + negLabels[ctx.dataIndex] + ' (' + ctx.parsed.x + '%)';
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        ...chartDefaults.scales,
+                        x: {
+                            ...chartDefaults.scales.x,
+                            max: 55,
+                            ticks: { stepSize: 10, color: '#8899bb' },
+                        },
+                        y: {
+                            ...chartDefaults.scales.y,
+                            ticks: { color: '#8899bb' },
+                        }
+                    }
+                }
+            });
+
+            // ===== 4. 看板二：饥荒联机版 =====
+
+            // 4.1 历年活动时长
+            const ctx3 = document.getElementById('chart2_duration').getContext('2d');
+            window.chart2_dur = new Chart(ctx3, {
+                type: 'bar',
+                data: {
+                    labels: ['2023', '2024', '2025', '2026 (本次)'],
+                    datasets: [{
+                        label: '活动时长 (天)',
+                        data: [42, 35, 34, 21],
+                        backgroundColor: [
+                            'rgba(96, 165, 250, 0.6)',
+                            'rgba(96, 165, 250, 0.6)',
+                            'rgba(96, 165, 250, 0.6)',
+                            'rgba(251, 191, 36, 0.8)'
+                        ],
+                        borderColor: ['#60a5fa', '#60a5fa', '#60a5fa', '#fbbf24'],
+                        borderWidth: 2,
+                        borderRadius: 6,
+                    }]
+                },
+                options: {
+                    ...chartDefaults,
+                    plugins: {
+                        ...chartDefaults.plugins,
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(ctx) {
+                                    return ctx.parsed.y + ' 天';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        ...chartDefaults.scales,
+                        y: {
+                            ...chartDefaults.scales.y,
+                            max: 50,
+                            ticks: { stepSize: 10, color: '#8899bb' },
+                        }
+                    }
+                }
+            });
+
+            // 4.2 核心玩法模块占比
+            const ctx4 = document.getElementById('chart2_module').getContext('2d');
+            window.chart2_mod = new Chart(ctx4, {
+                type: 'doughnut',
+                data: {
+                    labels: ['暖冬收集任务', '冬日盛宴筹备', '击败冰雪巨鹿'],
+                    datasets: [{
+                        data: [40, 35, 25],
+                        backgroundColor: [
+                            'rgba(96, 165, 250, 0.8)',
+                            'rgba(251, 191, 36, 0.8)',
+                            'rgba(248, 113, 113, 0.8)'
+                        ],
+                        borderColor: ['#60a5fa', '#fbbf24', '#f87171'],
+                        borderWidth: 2,
+                    }]
+                },
+                options: {
+                    ...chartDefaults,
+                    plugins: {
+                        ...chartDefaults.plugins,
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                color: '#c8d4f0',
+                                font: { size: 11 },
+                                boxWidth: 12,
+                                padding: 14,
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(ctx) {
+                                    return ctx.label + ': ' + ctx.parsed + '%';
+                                }
+                            }
+                        }
+                    },
+                    cutout: '55%',
+                }
+            });
+
+            // ===== 5. 窗口自适应 =====
+            let resizeTimer;
+            window.addEventListener('resize', function() {
+                clearTimeout(resizeTimer);
+                resizeTimer = setTimeout(() => {
+                    const charts = [
+                        window.chart1_dim,
+                        window.chart1_top,
+                        window.chart2_dur,
+                        window.chart2_mod
+                    ];
+                    charts.forEach(chart => {
+                        if (chart && typeof chart.resize === 'function') {
+                            chart.resize();
+                        }
+                    });
+                }, 150);
+            });
+
+        })();
+    </script>
+
+</body>
+</html>
